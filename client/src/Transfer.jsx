@@ -14,8 +14,6 @@ function Transfer({ address, setBalance, privateKey }) {
   async function transfer(evt) {
     evt.preventDefault();
 
-    
-
     try {
       const {
         data: { balance },
