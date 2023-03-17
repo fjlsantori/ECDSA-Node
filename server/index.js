@@ -38,35 +38,27 @@ app.post("/send", (req, res) => {
   // TODO: get a signature from the client-side application
   // recover the public address from the signature
 
-  const { signature, bit, recipient, amount, hashMsg, uuid, sender} = req.body;
+  const { signature, recoveredBit, msg } = req.body;
 
-  // rebuild the signature
-  const msg = {
-    uuid,
-    sender,
-    amount,
-    recipient,
-  };
-
-  const msgReHash = Buffer.from(JSON.stringify(msg));
-  const recoveredPublicKey = secp.recoverPublicKey(msgReHash, signature, bit);
+  const hash = keccak256(utf8ToBytes(msg));
+  const publicKey = secp.recoverPublicKey(hash, signature, recoveredBit);
 
   /* Validamos la firma ECDSA, Used in BTC, ETH.*/
-  const isValid = secp.verify(signature, msgReHash, recoveredPublicKey);
+  const isValid = secp.verify(signature, hash, publicKey);
   if (!isValid) {
     return res.status(400).send({ message: "Invalid signature" });
   }
 
-  setInitialBalance(sender);
-  setInitialBalance(recipient);
+  const message = JSON.parse(msg);
+  setInitialBalance(message.address);
+  setInitialBalance(message.recipient);
 
-
-  if (balances[sender] < amount) {
+  if (balances[message.address] < message.amount) {
     res.status(400).send({ message: "Not enough funds!" });
   } else {
-    balances[sender] -= amount;
-    balances[recipient] += amount;
-    res.send({ balance: balances[sender] });
+    balances[message.address] -= message.amount;
+    balances[message.recipient] += message.amount;
+    res.send({ balance: balances[message.address] });
   }
 });
 

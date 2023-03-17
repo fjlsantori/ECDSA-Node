@@ -12,15 +12,11 @@ function Transfer({ address, setBalance, privateKey }) {
 
   const setValue = (setter) => (evt) => setter(evt.target.value);
 
-
-  //del otro github jtordgeman
-  const encoder = new TextEncoder();
-
   async function transfer(evt) {
     evt.preventDefault();
 
     try {
-      // creamos el mensaje con la cantidad a transferir y la cuenta a la que transferimos
+
       const msg = JSON.stringify({
         address,
         amount: parseInt(sendAmount),
@@ -28,23 +24,16 @@ function Transfer({ address, setBalance, privateKey }) {
         nonce: toHex(getRandomBytesSync(4)),
       });
 
-      /* hasheamos el mensaje haciendo que "msg" sea un string 
-      mediante el JSON.stringfy  */
+      const [signature, recoveredBit] = await secp.sign(keccak256(utf8ToBytes(msg)), privateKey, { recovered: true });
+      // we'll need the "recoveredBit" for the recoverPublicKey method in the server
 
-      /* const hashMsg = encoder.encode(Jmsg);
-      const [signature, bit] = await secp.sign(hashMsg, privateKey, { recovered: true }); */
-      // we'll need the "bit" for the recoverPublicKey method
-
-      const [signature, bit] = await secp.sign(keccak256(utf8ToBytes(msg)),privateKey,{recovered: true});
-      
       const {
         data: { balance },
       } = await server.post(`send`, {
         signature: toHex(signature),
-        bit, 
+        recoveredBit,
         recipient,
         amount: parseInt(sendAmount),
-        /* hashMsg, */
         msg,
         sender: address,
       });
