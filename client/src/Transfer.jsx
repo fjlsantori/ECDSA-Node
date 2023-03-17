@@ -4,6 +4,7 @@ import * as secp from 'ethereum-cryptography/secp256k1';
 import { toHex } from 'ethereum-cryptography/utils';
 import { utf8ToBytes } from 'ethereum-cryptography/utils';
 import { keccak256 } from 'ethereum-cryptography/keccak';
+import { v4 as uuidv4 } from 'uuid';
 
 function Transfer({ address, setBalance, privateKey }) {
   const [sendAmount, setSendAmount] = useState("");
@@ -11,19 +12,44 @@ function Transfer({ address, setBalance, privateKey }) {
 
   const setValue = (setter) => (evt) => setter(evt.target.value);
 
+
+  //del otro github jtordgeman
+  const encoder = new TextEncoder();
+
   async function transfer(evt) {
     evt.preventDefault();
 
     try {
+      /* that variable is avoids the replay attacks
+      generated a UUID for each request and used it to sign the message */
+      const uuid = uuidv4();
+      // creamos el mensaje con la cantidad a transferir y la cuenta a la que transferimos
+      const msg = JSON.stringify({
+        uuid,
+        address,
+        amount: parseInt(sendAmount),
+        recipient
+      });
+
+      /* hasheamos el mensaje haciendo que "msg" sea un string 
+      mediante el JSON.stringfy  */
+      const hashMsg = encoder.encode(Jmsg);
+      const [signature, bit] = await secp.sign(hashMsg, privateKey, { recovered: true });
+      // we'll need the "bit" for the recoverPublicKey method
+
+
       const {
         data: { balance },
       } = await server.post(`send`, {
-        sender: address,
-        amount: parseInt(sendAmount),
+        signature: toHex(signature),
+        bit, 
         recipient,
-        privateKey,
+        amount: parseInt(sendAmount),
+        hashMsg,
+        uuid,
+        sender: address,
       });
-      setBalance(balance); 
+      setBalance(balance);
     } catch (ex) {
       alert(ex.response.data.message);
     }
@@ -49,6 +75,10 @@ function Transfer({ address, setBalance, privateKey }) {
           value={recipient}
           onChange={setValue(setRecipient)}
         ></input>
+      </label>
+
+      <label>
+        <div className="balance">Private Key: {privateKey}</div>
       </label>
 
       <input type="submit" className="button" value="Transfer" />
