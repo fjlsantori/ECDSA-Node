@@ -4,7 +4,7 @@ import * as secp from 'ethereum-cryptography/secp256k1';
 import { toHex } from 'ethereum-cryptography/utils';
 import { utf8ToBytes } from 'ethereum-cryptography/utils';
 import { keccak256 } from 'ethereum-cryptography/keccak';
-import { v4 as uuidv4 } from 'uuid';
+import { getRandomBytesSync } from 'ethereum-cryptography/random';
 
 function Transfer({ address, setBalance, privateKey }) {
   const [sendAmount, setSendAmount] = useState("");
@@ -20,24 +20,23 @@ function Transfer({ address, setBalance, privateKey }) {
     evt.preventDefault();
 
     try {
-      /* that variable is avoids the replay attacks
-      generated a UUID for each request and used it to sign the message */
-      const uuid = uuidv4();
       // creamos el mensaje con la cantidad a transferir y la cuenta a la que transferimos
       const msg = JSON.stringify({
-        uuid,
         address,
         amount: parseInt(sendAmount),
-        recipient
+        recipient,
+        nonce: toHex(getRandomBytesSync(4)),
       });
 
       /* hasheamos el mensaje haciendo que "msg" sea un string 
       mediante el JSON.stringfy  */
-      const hashMsg = encoder.encode(Jmsg);
-      const [signature, bit] = await secp.sign(hashMsg, privateKey, { recovered: true });
+
+      /* const hashMsg = encoder.encode(Jmsg);
+      const [signature, bit] = await secp.sign(hashMsg, privateKey, { recovered: true }); */
       // we'll need the "bit" for the recoverPublicKey method
 
-
+      const [signature, bit] = await secp.sign(keccak256(utf8ToBytes(msg)),privateKey,{recovered: true});
+      
       const {
         data: { balance },
       } = await server.post(`send`, {
@@ -45,8 +44,8 @@ function Transfer({ address, setBalance, privateKey }) {
         bit, 
         recipient,
         amount: parseInt(sendAmount),
-        hashMsg,
-        uuid,
+        /* hashMsg, */
+        msg,
         sender: address,
       });
       setBalance(balance);
