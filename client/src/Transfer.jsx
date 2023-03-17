@@ -1,9 +1,9 @@
 import { useState } from "react";
-import server from "./server";
 import * as secp from 'ethereum-cryptography/secp256k1';
 import { toHex } from 'ethereum-cryptography/utils';
 import { utf8ToBytes } from 'ethereum-cryptography/utils';
 import { keccak256 } from 'ethereum-cryptography/keccak';
+import server from "./server";
 import { getRandomBytesSync } from 'ethereum-cryptography/random';
 
 function Transfer({ address, setBalance, privateKey }) {
@@ -17,11 +17,12 @@ function Transfer({ address, setBalance, privateKey }) {
 
     try {
 
+      /* JSON.stringify converts objects to string */
       const msg = JSON.stringify({
         address,
         amount: parseInt(sendAmount),
         recipient,
-        nonce: toHex(getRandomBytesSync(4)),
+        nonce: toHex(getRandomBytesSync(4)), //to avoid replay attacks
       });
 
       const [signature, recoveredBit] = await secp.sign(keccak256(utf8ToBytes(msg)), privateKey, { recovered: true });
@@ -32,10 +33,7 @@ function Transfer({ address, setBalance, privateKey }) {
       } = await server.post(`send`, {
         signature: toHex(signature),
         recoveredBit,
-        recipient,
-        amount: parseInt(sendAmount),
         msg,
-        sender: address,
       });
       setBalance(balance);
     } catch (ex) {
@@ -63,10 +61,6 @@ function Transfer({ address, setBalance, privateKey }) {
           value={recipient}
           onChange={setValue(setRecipient)}
         ></input>
-      </label>
-
-      <label>
-        <div className="balance">Private Key: {privateKey}</div>
       </label>
 
       <input type="submit" className="button" value="Transfer" />

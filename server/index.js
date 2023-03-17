@@ -43,13 +43,15 @@ app.post("/send", (req, res) => {
   const hash = keccak256(utf8ToBytes(msg));
   const publicKey = secp.recoverPublicKey(hash, signature, recoveredBit);
 
-  /* Validamos la firma ECDSA, Used in BTC, ETH.*/
+  /* Validate the signature. Used in BTC, ETH.*/
   const isValid = secp.verify(signature, hash, publicKey);
   if (!isValid) {
     return res.status(400).send({ message: "Invalid signature" });
   }
 
   const message = JSON.parse(msg);
+  //We need to parse in order to update senders balance
+
   setInitialBalance(message.address);
   setInitialBalance(message.recipient);
 
