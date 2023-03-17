@@ -4,7 +4,7 @@ import { toHex } from 'ethereum-cryptography/utils';
 import { utf8ToBytes } from 'ethereum-cryptography/utils';
 import { keccak256 } from 'ethereum-cryptography/keccak';
 import server from "./server";
-import { getRandomBytesSync } from 'ethereum-cryptography/random';
+import { v4 as uuidv4 } from 'uuid';
 
 function Transfer({ address, setBalance, privateKey }) {
   const [sendAmount, setSendAmount] = useState("");
@@ -16,13 +16,13 @@ function Transfer({ address, setBalance, privateKey }) {
     evt.preventDefault();
 
     try {
-
+      const uuid = uuidv4();
       /* JSON.stringify converts objects to string */
       const msg = JSON.stringify({
         address,
         amount: parseInt(sendAmount),
         recipient,
-        nonce: toHex(getRandomBytesSync(4)), //to avoid replay attacks
+        uuid, //to avoid replay attacks
       });
 
       const [signature, recoveredBit] = await secp.sign(keccak256(utf8ToBytes(msg)), privateKey, { recovered: true });
